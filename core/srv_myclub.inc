@@ -2,13 +2,13 @@
 
 int32_t z28RandomBooster(int pos = -1) {
   // Max forward / striker boosters (+4 and top +3 for SS, CF, LWF, RWF, AMF)
-  static const std::vector<int32_t> fwdBoosters = {16, 48, 69, 77, 47, 24, 25, 17, 186, 187, 193};
+  static const std::vector<int32_t> fwdBoosters = {16, 47, 48, 69, 77, 186, 187, 192, 193, 194, 205, 208, 143, 153};
   // Max midfield boosters (+4 and top +3 for DMF, CMF, LMF, RMF)
-  static const std::vector<int32_t> midBoosters = {45, 47, 21, 18, 19, 22, 184, 187, 188, 189};
-  // Max defender boosters (+3/+4 for CB, LB, RB)
-  static const std::vector<int32_t> defBoosters = {20, 23, 12, 11, 25, 171, 185, 195, 198, 202};
-  // Max goalkeeper boosters (+3/+4 for GK)
-  static const std::vector<int32_t> gkBoosters = {15, 23, 33, 73, 79, 85, 136, 271};
+  static const std::vector<int32_t> midBoosters = {45, 47, 184, 186, 187, 188, 189, 190, 193, 199, 200, 201, 202};
+  // Max defender boosters (+4 and top +3 for CB, LB, RB)
+  static const std::vector<int32_t> defBoosters = {71, 72, 77, 146, 156, 171, 185, 190, 191, 195, 198, 202, 207};
+  // Max goalkeeper boosters (+4 and top +3 for GK)
+  static const std::vector<int32_t> gkBoosters = {33, 73, 79, 85, 96, 133, 136, 170, 171, 271, 451, 495, 502};
 
   zc::JavaRandom r;
   if (pos == 0) {
@@ -27,30 +27,55 @@ void applyZiruBoosterTrainingResponse(const ObjP& r13) {
   try {
     if (!ziruItemType) return;
     std::string r0 = *ziruItemType;
+    if (r0 != "ABILITY_TRAINING_RANDOM" && r0 != "ABILITY_TRAINING_SELECT" && r0 != "ABILITY_TRAINING") return;
+
     int32_t r3 = ziruTrainingIndex;
     if (!(r3 >= 0 && r3 < 3)) r3 = 1;
     int64_t r4 = ziruTargetSerial;
-    if (r4 <= 0) { logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23_FAIL] missing target/ability"); return; }
-    JStr r7 = loadPlayer(r4);
     ObjP r8;
-    if (r7 && !r7->empty()) {
-      r8 = Object::parse(*r7);
-    } else {
-      r8 = z27OwnedPlayer(r4);
-      if (!r8) { logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23_FAIL] missing target/ability"); return; }
+    if (r4 > 0) {
+      JStr r7 = loadPlayer(r4);
+      if (r7 && !r7->empty()) {
+        r8 = Object::parse(*r7);
+      } else {
+        r8 = z27OwnedPlayer(r4);
+      }
+    }
+    if (!r8 && ziruTargetPlayerId > 0) {
+      ObjP w = getZiruPlayerWrapper(Value((long long)ziruTargetPlayerId), false);
+      if (!w) w = getZiruPlayerWrapperByBaseId((int32_t)(ziruTargetPlayerId & 0xFFFFFF));
+      if (w && w->optJSONObject("gameplayer")) r8 = z27Copy(w->getJSONObject("gameplayer"));
+    }
+    if (!r8) {
+      ArrP list = z27Entry() ? z27Entry()->optJSONArray("gameplayer_list") : nullptr;
+      if (list && list->length() > 0) {
+        if (r4 > 0) {
+          for (int i = 0; i < list->length(); ++i) {
+            ObjP gp = list->optJSONObject(i);
+            ObjP gid = gp ? gp->optJSONObject("gameplayer_id") : nullptr;
+            if (gid && gid->optLong("serial", 0) == r4) { r8 = z27Copy(gp); break; }
+          }
+        }
+        if (!r8) r8 = z27Copy(list->optJSONObject(0));
+      }
+    }
+    if (!r8) {
+      logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23_FAIL] missing target/ability");
+      return;
+    }
+    if (r4 <= 0) {
+      ObjP gid = r8->optJSONObject("gameplayer_id");
+      if (gid) r4 = gid->optLong("serial", 0);
     }
     r8 = ziruSyncActiveBooster(r8);
     ArrP r9 = nn(r8)->optJSONArray("parameters");
     int pos = (r9 && r9->length() > 0) ? r9->optInt(0, -1) : -1;
 
     int32_t r2;
-    if (r0 == "ABILITY_TRAINING_RANDOM") {
-      r2 = z28RandomBooster(pos);
-    } else if (r0 == "ABILITY_TRAINING_SELECT") {
+    if (r0 == "ABILITY_TRAINING_SELECT" && ziruAbilityId > 0) {
       r2 = ziruAbilityId;
-      if (r2 <= 0) { logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23_FAIL] missing target/ability"); return; }
     } else {
-      return;
+      r2 = z28RandomBooster(pos);
     }
     if (r9 && r9->length() >= 145) r9->put(142 + r3, r2);
     ArrP ib = r8->optJSONArray("initial_booster_id_list");
@@ -63,6 +88,7 @@ void applyZiruBoosterTrainingResponse(const ObjP& r13) {
     res->put("ability_Id", r2);
     res->put("ability_id", r2);
     res->put("is_success", "YES");
+    if (r13->has("skill_training_result")) r13->remove("skill_training_result");
     logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23] type=" + r0 + " serial=" + str(r4) + " slot=" + str(r3) + " ability_id=" + str(r2));
   } catch (const std::exception& e) {
     zs::loge("OFFLINE_SERVER", std::string("[ZIRU_BOOSTER_V23_ERR] ") + e.what());
@@ -599,9 +625,37 @@ void applyZiruSkillTrainingResponse(const ObjP& jo) {
   try {
     if (!ziruItemType || (*ziruItemType != "SKILL_TRAINING" && *ziruItemType != "SKILL_TRAINING_CATEGORY" && *ziruItemType != "SKILL_TRAINING_SELECT")) return;
     int64_t j = ziruTargetSerial;
-    if (j == 0) return;
-    ObjP owned = z27OwnedPlayer(j);
+    ObjP owned;
+    if (j > 0) {
+      owned = z27OwnedPlayer(j);
+      if (!owned) {
+        JStr lp = loadPlayer(j);
+        if (lp && !lp->empty()) owned = Object::parse(*lp);
+      }
+    }
+    if (!owned && ziruTargetPlayerId > 0) {
+      ObjP w = getZiruPlayerWrapper(Value((long long)ziruTargetPlayerId), false);
+      if (!w) w = getZiruPlayerWrapperByBaseId((int32_t)(ziruTargetPlayerId & 0xFFFFFF));
+      if (w && w->optJSONObject("gameplayer")) owned = z27Copy(w->getJSONObject("gameplayer"));
+    }
+    if (!owned) {
+      ArrP list = z27Entry() ? z27Entry()->optJSONArray("gameplayer_list") : nullptr;
+      if (list && list->length() > 0) {
+        if (j > 0) {
+          for (int i = 0; i < list->length(); ++i) {
+            ObjP gp = list->optJSONObject(i);
+            ObjP gid = gp ? gp->optJSONObject("gameplayer_id") : nullptr;
+            if (gid && gid->optLong("serial", 0) == j) { owned = z27Copy(gp); break; }
+          }
+        }
+        if (!owned) owned = z27Copy(list->optJSONObject(0));
+      }
+    }
     if (!owned) return;
+    if (j <= 0) {
+      ObjP gid = owned->optJSONObject("gameplayer_id");
+      if (gid) j = gid->optLong("serial", 0);
+    }
 
     zs::Prefs& prefs = sp("almanac_state");
     std::string key = "ziru_skills_" + str(j);
@@ -654,12 +708,12 @@ void applyZiruSkillTrainingResponse(const ObjP& jo) {
     if (*ziruItemType == "SKILL_TRAINING_SELECT") {
       int chosen = ziruAbilityId;
       if (chosen == 0 && ziruSkillItemEffect > 0) chosen = ziruSkillItemEffect;
-      if (!isZiruSkillId(chosen)) chosen = iosSkillId(chosen, false);
-
       if (isZiruSkillId(chosen)) {
         v = chosen;
-      } else if (!candidates.empty()) {
-        v = candidates[0];
+      } else {
+        int mapped = iosSkillId(chosen, false);
+        if (isZiruSkillId(mapped)) v = mapped;
+        else if (!candidates.empty()) v = candidates[0];
       }
     } else {
       if (!candidates.empty()) {

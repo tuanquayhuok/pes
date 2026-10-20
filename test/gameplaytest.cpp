@@ -356,6 +356,26 @@ int main() {
       check(resp->getJSONArray("receive_result_list")->length() > 0, "receive_result_list returned");
       check(resp->getJSONArray("receive_result_list")->getJSONObject(0)->getString("is_success") == "YES", "reward claimed successfully");
     }
+    {
+      OfflineServer s(cfg);
+      auto skillResp = call(s, "CMD_GET_MYCLUB_SELECT_SKILL");
+      auto skillList = skillResp->optJSONArray("select_skill_list");
+      check(skillList && skillList->length() == 74, "CMD_GET_MYCLUB_SELECT_SKILL returns all 74 skills");
+      check(skillList->getInt(0) == 0 && skillList->getInt(73) == 73, "skills preserve raw 0..73 indices");
+
+      auto bstResp = call(s, "CMD_GET_MYCLUB_SELECT_ABILITY");
+      auto bstList = bstResp->optJSONArray("select_ability_list");
+      check(bstList && bstList->length() > 20, "CMD_GET_MYCLUB_SELECT_ABILITY returns top booster list");
+
+      // Test booster slot 2 training with single object gameplayer_id
+      auto bstReq = newObj()->put("gameplayer_id", newObj()->put("id", 101LL)->put("serial", 303LL))
+          ->put("training_index", 1)->put("item_list", newArr()->put(newObj()->put("present_num", 1)
+          ->put("item", newObj()->put("item_type", "ABILITY_TRAINING_RANDOM"))));
+      auto bstResult = call(s, "CMD_USE_MYCLUB_ITEM", bstReq);
+      check(bstResult->getJSONObject("ability_training_result")->getString("is_success") == "YES", "booster training succeeds");
+      int trainedBooster = bstResult->getJSONObject("ability_training_result")->getInt("ability_id");
+      check(trainedBooster > 0, "max position booster assigned");
+    }
     std::filesystem::create_directories(root + "/kill-save");
     pid_t child = fork();
     check(child >= 0, "spawn abrupt-exit save test");

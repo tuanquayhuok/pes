@@ -143,7 +143,7 @@ Response serveJsonAsEncryptedMsgPack(const std::string& name) {
       }
     }
   }
-  if (jo && name == "responses/CMD_USE_MYCLUB_ITEM.json") {
+  if (jo && (name == "responses/CMD_USE_MYCLUB_ITEM.json" || name == "responses/CmdUseMyclubItem.json")) {
     applyZiruPositionTrainingResponse(jo);
     applyZiruBoosterTrainingResponse(jo);
     applyZiruSkillTrainingResponse(jo);
@@ -258,6 +258,10 @@ static const char* routeAsset(const std::string& uri) {
       {"CmdGetMyclubAchievementlist.php", "CmdGetMyclubAchievementlist.json"},
       {"CmdSetMyclubTutorialAchievementInfo.php", "CmdSetMyclubTutorialAchievementInfo.json"}, {"CmdExtendMyclubCoach.php", "CmdExtendMyclubCoach.json"},
       {"CmdExtendMyclubGameplayer.php", "CmdExtendMyclubGameplayer.json"}, {"CmdGetMyclubPresentlist.php", "CmdGetMyclubPresentlist.json"},
+      {"CmdUseMyclubItem.php", "CMD_USE_MYCLUB_ITEM.json"}, {"CmdUseMyclubItem", "CMD_USE_MYCLUB_ITEM.json"},
+      {"CmdGetMyclubSelectSkill.php", "CMD_GET_MYCLUB_SELECT_SKILL.json"}, {"CmdGetMyclubSelectSkill", "CMD_GET_MYCLUB_SELECT_SKILL.json"},
+      {"CmdGetMyclubSelectAbility.php", "CMD_GET_MYCLUB_SELECT_ABILITY.json"}, {"CmdGetMyclubSelectAbility", "CMD_GET_MYCLUB_SELECT_ABILITY.json"},
+      {"CmdGetMyclubSelectBooster.php", "CMD_GET_MYCLUB_SELECT_ABILITY.json"}, {"CmdGetMyclubSelectBooster", "CMD_GET_MYCLUB_SELECT_ABILITY.json"},
       {"COUNTRY", "GetCountryList.json"}, {"PRODUCT", "get_product_list.json"}, {"MAINTENANCE", "get_maintenance_info.json"},
       {"LOGIN", "CmdLogin.json"}, {"CREATE_USER", "CmdCreateUser.json"}, {"ENTRY_INFO", "CmdGetEntryInfo.json"},
       {"AGENT_BOX", "CmdGetMyclubAgentBoxInfo.json"}, {"AGENTLIST", "CmdGetMyclubAgentlist.json"},
@@ -265,6 +269,8 @@ static const char* routeAsset(const std::string& uri) {
       {"MARKET_AGENT", "get_myclub_market_agentlist.json"}, {"PRESENTLIST", "get_myclub_presentlist.json"},
       {"PROCURABLE", "CmdGetMyclubProcurableGameplayerlist.json"}, {"RESET_MYCLUB_AGENT", "CmdResetMyclubAgent.json"},
       {"USE_MYCLUB_AGENT", "CmdUseMyclubAgent.json"}, {"USE_MYCLUB_ITEM", "CMD_USE_MYCLUB_ITEM.json"},
+      {"SELECT_SKILL", "CMD_GET_MYCLUB_SELECT_SKILL.json"}, {"SELECT_ABILITY", "CMD_GET_MYCLUB_SELECT_ABILITY.json"},
+      {"SELECT_BOOSTER", "CMD_GET_MYCLUB_SELECT_ABILITY.json"},
       {"SET_MYCLUB_SQUAD_INFO", "CMD_SET_MYCLUB_SQUAD_INFO.json"},
       {"VSCOM", "get_myclub_vscom_opponent.json"}, {"RECOVER_ENERGY", "CmdRecoverEnergy.json"}, {"DOWNLOAD_STATS", "CmdSendDownloadStatsData.json"},
       {"HEARTBEAT", "CmdSendHeartbeat.json"}, {"MATCH_TEAM", "CmdSendMatchTeamInfo.json"}, {"PLAYLOG", "CmdSendPlaylog.json"},
@@ -284,8 +290,10 @@ static const char* routeAsset(const std::string& uri) {
       {"EULA", "get_user_eula_info.json"}, {"AUCTIONLIST", "getauctionlist.json"}, {"SET_MYCLUBUSER_ACHIEVEMENTLIST", "set_myclubuser_achieveentlist.json"},
       {"GET_MYCLUB_CONTRACT_INFO", "get_myclub_contract_info.json"}, {"START_GAME", "start_game.json"},
   };
-  for (const R& r : first)
-    if (uri.find(r.k) != std::string::npos) return r.v;
+  std::string norm = toUpperUS(replaceAll(uri, "_", ""));
+  for (const R& r : first) {
+    if (uri.find(r.k) != std::string::npos || norm.find(toUpperUS(replaceAll(r.k, "_", ""))) != std::string::npos) return r.v;
+  }
   return nullptr;
 }
 
@@ -322,7 +330,7 @@ Response serveInner(Request& r) {
     jo->put("check_result", "OK");
     return serveObjectAsEncryptedMsgPack(jo);
   }
-  if (isCmd("CMD_GET_MYCLUB_SELECT_SKILL")) {
+  if (isCmd("CMD_GET_MYCLUB_SELECT_SKILL") || contains(norm, "SELECTSKILL") || contains(norm, "SKILLSELECT")) {
     ObjP req = decodeZiruRequestJson(ziruLastRequestBody);
     long long rq = req ? req->optLong("rqid", 1) : 1;
     ObjP jo = newObj();
@@ -333,6 +341,28 @@ Response serveInner(Request& r) {
     ArrP list = newArr();
     for (int i = 0; i < 74; i++) list->put(i);
     jo->put("select_skill_list", list);
+    jo->put("skill_list", list);
+    return serveObjectAsEncryptedMsgPack(jo);
+  }
+  if (isCmd("CMD_GET_MYCLUB_SELECT_ABILITY") || contains(norm, "SELECTABILITY") || contains(norm, "SELECTBOOSTER") || contains(norm, "ABILITYSELECT") || contains(norm, "BOOSTERSELECT")) {
+    ObjP req = decodeZiruRequestJson(ziruLastRequestBody);
+    long long rq = req ? req->optLong("rqid", 1) : 1;
+    ObjP jo = newObj();
+    jo->put("result", "NOERR");
+    jo->put("rqid", rq);
+    jo->put("msgid", "CMD_GET_MYCLUB_SELECT_ABILITY");
+    jo->put("is_success", "YES");
+    ArrP list = newArr();
+    static const int validBoosters[] = {
+      16, 45, 47, 48, 69, 71, 72, 73, 75, 76, 77, 78, 79, 81, 85, 96, 101,
+      132, 133, 136, 143, 146, 147, 148, 149, 150, 153, 155, 156, 170, 171,
+      184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 198,
+      199, 200, 201, 202, 205, 206, 207, 208, 271
+    };
+    for (int bId : validBoosters) list->put(bId);
+    jo->put("select_ability_list", list);
+    jo->put("ability_list", list);
+    jo->put("ability_id_list", list);
     return serveObjectAsEncryptedMsgPack(jo);
   }
   if (isCmd("CMD_CREATE_MYCLUB_SQUAD")) {

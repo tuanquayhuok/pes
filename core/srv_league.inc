@@ -244,7 +244,34 @@ void decodeZiruMyclubItemRequest(const Bytes& b) {
         ziruTargetSerial = gid->optLong("serial", 0);
       }
     }
+    if (ziruTargetSerial == 0) {
+      ObjP gid = req->optJSONObject("gameplayer_id");
+      if (!gid) {
+        ObjP gp = req->optJSONObject("gameplayer");
+        if (gp) gid = gp->optJSONObject("gameplayer_id");
+      }
+      if (gid) {
+        if (ziruTargetPlayerId == 0) ziruTargetPlayerId = gid->optLong("id", 0);
+        ziruTargetSerial = gid->optLong("serial", 0);
+      }
+    }
+    if (ziruTargetSerial == 0) {
+      if (req->has("serial")) ziruTargetSerial = req->optLong("serial", 0);
+      else if (req->has("gameplayer_serial")) ziruTargetSerial = req->optLong("gameplayer_serial", 0);
+      else if (req->has("target_serial")) ziruTargetSerial = req->optLong("target_serial", 0);
+    }
+    if (ziruTargetPlayerId == 0) {
+      if (req->has("id")) ziruTargetPlayerId = req->optLong("id", 0);
+      else if (req->has("player_id")) ziruTargetPlayerId = req->optLong("player_id", 0);
+    }
+
     ziruTrainingIndex = req->optInt("training_index", -1);
+    if (ziruTrainingIndex < 0) {
+      if (req->has("slot")) ziruTrainingIndex = req->optInt("slot", -1);
+      else if (req->has("slot_index")) ziruTrainingIndex = req->optInt("slot_index", -1);
+      else if (req->has("index")) ziruTrainingIndex = req->optInt("index", -1);
+    }
+
     if (req->has("ability_id")) ziruAbilityId = req->optInt("ability_id", 0);
     else if (req->has("ability_Id")) ziruAbilityId = req->optInt("ability_Id", 0);
     else if (req->has("skill_id")) ziruAbilityId = req->optInt("skill_id", 0);
@@ -254,6 +281,8 @@ void decodeZiruMyclubItemRequest(const Bytes& b) {
       ziruSkillCategory = req->optString("skill_training_category_type", "");
       ziruSkillCategoryCode = req->optInt("skill_training_category_type", -1);
     }
+
+    if (req->has("item_type")) ziruItemType = req->optString("item_type", "");
 
     ArrP itemList = req->optJSONArray("item_list");
     if (itemList) {
