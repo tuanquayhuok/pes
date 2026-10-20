@@ -270,6 +270,10 @@ ObjP refreshZiruGameplayerFromCanonical(const ObjP& jo) {
           ArrP curParams = cur->optJSONArray("parameters");
           if (baseParams && curParams) {
             while (curParams->length() < 145) curParams->put(0);
+            for (int idx = 14; idx <= 40; ++idx) {
+              int baseStat = baseParams->optInt(idx, 0);
+              if (baseStat > curParams->optInt(idx, 0)) curParams->put(idx, baseStat);
+            }
             for (int idx = 70; idx <= 141; ++idx) {
               int baseSkill = baseParams->optInt(idx, 0);
               if (baseSkill != 0) {
@@ -291,6 +295,10 @@ ObjP refreshZiruGameplayerFromCanonical(const ObjP& jo) {
           ArrP origParams = cur->optJSONArray("original_parameters");
           if (baseParams && origParams) {
             while (origParams->length() < 145) origParams->put(0);
+            for (int idx = 14; idx <= 40; ++idx) {
+              int baseStat = baseParams->optInt(idx, 0);
+              if (baseStat > origParams->optInt(idx, 0)) origParams->put(idx, baseStat);
+            }
             for (int idx = 70; idx <= 141; ++idx) {
               int baseSkill = baseParams->optInt(idx, 0);
               if (baseSkill != 0) {
@@ -368,6 +376,7 @@ ObjP refreshZiruGameplayerFromCanonical(const ObjP& jo) {
         z27ApplyAppearanceAndClub(cur);
         applyZiruRonaldoMaxProgression(cur);
         applyZiruWeakFootFix(cur);
+        z27EnsureMaxCardStats(cur);
         if (serial > 0) {
           ziruDb->savePlayer(serial, id, cur->toString());
         }

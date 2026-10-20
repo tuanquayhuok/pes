@@ -437,6 +437,43 @@ void applyZiruRonaldoMaxProgression(const ObjP& jo) {
   }
 }
 
+inline void z27EnsureMaxCardStats(const ObjP& jo) {
+  if (!jo) return;
+  try {
+    ArrP params = jo->optJSONArray("parameters");
+    if (!params || params->length() < 41) return;
+    int pos = params->optInt(0, 0);
+    bool isGK = (pos == 0);
+    int testStat = isGK ? params->optInt(16, 0) : params->optInt(14, 0);
+    if (testStat < 95) {
+      auto scale = [](int v, int tMin, int tMax) -> int {
+        if (v <= 40) return v;
+        double t = (v - 45.0) / 41.0;
+        if (t < 0.0) t = 0.0;
+        if (t > 1.0) t = 1.0;
+        int res = (int)std::round(tMin + t * (tMax - tMin));
+        return std::min(tMax, std::max(v, res));
+      };
+      ArrP origParams = jo->optJSONArray("original_parameters");
+      static const int attrOutfield[] = {14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 34, 35, 36, 37, 38, 39, 40};
+      static const int attrGK[] = {16, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40};
+      const int* attrs = isGK ? attrGK : attrOutfield;
+      int count = isGK ? 12 : 21;
+      for (int i = 0; i < count; ++i) {
+        int idx = attrs[i];
+        if (idx < params->length()) {
+          int v = params->optInt(idx, 0);
+          int up = scale(v, 96, 126);
+          params->put(idx, up);
+          if (origParams && idx < origParams->length()) {
+            origParams->put(idx, up);
+          }
+        }
+      }
+    }
+  } catch (...) {}
+}
+
 inline const std::unordered_map<int32_t, std::pair<int, int>>& getZiruCanonicalWeakFootMap() {
   static const std::unordered_map<int32_t, std::pair<int, int>> kMap = {
     {52, {3, 3}},

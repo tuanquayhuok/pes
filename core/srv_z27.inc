@@ -546,10 +546,23 @@ void z27Restore(const ObjP& jo) {
             ArrP svParams = sv->optJSONArray("parameters");
             if (baseParams && svParams && baseParams->length() >= 142) {
               while (svParams->length() < 145) svParams->put(0);
+              for (int idx = 14; idx <= 40; idx++) {
+                int baseStat = baseParams->optInt(idx, 0);
+                if (baseStat > svParams->optInt(idx, 0)) svParams->put(idx, baseStat);
+              }
               for (int idx = 70; idx <= 141; idx++) {
                 if (baseParams->optInt(idx, 0) == 1) svParams->put(idx, 1);
               }
             }
+            ArrP svOrig = sv->optJSONArray("original_parameters");
+            if (baseParams && svOrig && baseParams->length() >= 142) {
+              while (svOrig->length() < 145) svOrig->put(0);
+              for (int idx = 14; idx <= 40; idx++) {
+                int baseStat = baseParams->optInt(idx, 0);
+                if (baseStat > svOrig->optInt(idx, 0)) svOrig->put(idx, baseStat);
+              }
+            }
+            z27EnsureMaxCardStats(sv);
             // Restore authentic booster if missing
             ObjP baseGp = (w && w->optJSONObject("gameplayer")) ? w->getJSONObject("gameplayer") : nullptr;
             if (baseGp) {
@@ -659,8 +672,20 @@ void z27Restore(const ObjP& jo) {
           if (!skillList.empty()) {
             statePrefs.edit().putString(prefKey, joinInts(skillList)).commit();
           }
+          ObjP w = getZiruPlayerWrapper(Value((long long)pPid), false);
+          if (!w) w = getZiruPlayerWrapperByBaseId(bid);
+          ArrP baseParams = (w && w->optJSONObject("gameplayer")) ? w->getJSONObject("gameplayer")->optJSONArray("parameters") : nullptr;
           ArrP pParams = p->optJSONArray("parameters");
           if (pParams && pParams->length() >= 142) {
+            if (baseParams && baseParams->length() >= 142) {
+              for (int idx = 14; idx <= 40; idx++) {
+                int baseStat = baseParams->optInt(idx, 0);
+                if (baseStat > pParams->optInt(idx, 0)) pParams->put(idx, baseStat);
+              }
+              for (int idx = 70; idx <= 141; idx++) {
+                if (baseParams->optInt(idx, 0) == 1) pParams->put(idx, 1);
+              }
+            }
             for (int v : skillList) {
               if (isZiruSkillId(v)) {
                 int pIdx = kZiruSkillParameters[v];
@@ -668,6 +693,14 @@ void z27Restore(const ObjP& jo) {
               }
             }
           }
+          ArrP pOrig = p->optJSONArray("original_parameters");
+          if (pOrig && pOrig->length() >= 142 && baseParams && baseParams->length() >= 142) {
+            for (int idx = 14; idx <= 40; idx++) {
+              int baseStat = baseParams->optInt(idx, 0);
+              if (baseStat > pOrig->optInt(idx, 0)) pOrig->put(idx, baseStat);
+            }
+          }
+          z27EnsureMaxCardStats(p);
           ArrP pPs = p->optJSONArray("play_style");
           if (!pPs || pPs->length() == 0 || pPs->optInt(0, 0) <= 0) {
             p->put("play_style", z27ResolvePlayStyle(p->getJSONObject("gameplayer_id")->getLong("id"), p));
