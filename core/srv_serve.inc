@@ -28,13 +28,16 @@ Response serveJsonAsEncryptedMsgPack(const std::string& name) {
   if (jo && (resumesSave || name == "responses/get_user_eula_info.json" || name == "responses/get_myclub_mainmenu_info.json")) {
     if (resumesSave || name == "responses/get_myclub_mainmenu_info.json") {
       if (resumesSave) patchLocalLivedataUrls(jo);
+      zs::Prefs& prefs = sp("almanac_state");
+      int64_t curCoin = prefs.getLong("ziru_coins", 1000000000LL);
+      int64_t curGp = prefs.getLong("ziru_gp", 1000000000LL);
       ObjP ci = jo->optJSONObject("coin_info");
       if (!ci) { ci = newObj(); jo->put("coin_info", ci); }
-      ci->put("coin", 9999999);
+      ci->put("coin", (long long)curCoin);
       ArrP dt = newArr();
-      dt->put(newObj()->put("before_paid_coin", 9999999)->put("before_free_coin", 0)->put("after_paid_coin", 9999999)->put("after_free_coin", 0));
+      dt->put(newObj()->put("before_paid_coin", (long long)curCoin)->put("before_free_coin", 0LL)->put("after_paid_coin", (long long)curCoin)->put("after_free_coin", 0LL));
       ci->put("details", dt);
-      jo->put("gp", 999999999);
+      jo->put("gp", (long long)curGp);
     }
     ObjP eula = jo->optJSONObject("user_eula_info");
     if (eula) {
@@ -67,13 +70,21 @@ Response serveJsonAsEncryptedMsgPack(const std::string& name) {
       } catch (const std::exception& e) {
         zs::loge("OFFLINE_SERVER", std::string("[IOS_AGENT] agent_list refresh failed ") + e.what());
       }
+      zs::Prefs& prefs = sp("almanac_state");
+      int64_t beforeCoin = prefs.getLong("ziru_coins", 1000000000LL);
+      int count = (ziruLastCount > 0) ? ziruLastCount : 1;
+      int64_t costCoin = (count >= 10) ? (900LL * (count / 10) + 100LL * (count % 10)) : (100LL * count);
+      int64_t afterCoin = (beforeCoin >= costCoin) ? (beforeCoin - costCoin) : 0LL;
+      prefs.edit().putLong("ziru_coins", afterCoin).commit();
+
       ObjP ci = jo->optJSONObject("coin_info");
       if (!ci) { ci = newObj(); jo->put("coin_info", ci); }
-      ci->put("coin", 9999999);
+      ci->put("coin", (long long)afterCoin);
       ArrP dt = newArr();
-      dt->put(newObj()->put("before_paid_coin", 9999999)->put("before_free_coin", 0)->put("after_paid_coin", 9999999)->put("after_free_coin", 0));
+      dt->put(newObj()->put("before_paid_coin", (long long)beforeCoin)->put("before_free_coin", 0LL)->put("after_paid_coin", (long long)afterCoin)->put("after_free_coin", 0LL));
       ci->put("details", dt);
-      jo->put("gp", 999999999);
+      int64_t curGp = prefs.getLong("ziru_gp", 1000000000LL);
+      jo->put("gp", (long long)curGp);
     }
     ArrP gl;
     if (name == "responses/CmdUseMyclubAgent.json" && (gl = jo->optJSONArray("gameplayer_list"))) {
@@ -155,19 +166,31 @@ Response serveJsonAsEncryptedMsgPack(const std::string& name) {
     }
   }
   if (jo && resumesSave) {
-    jo->put("gp", 999999999LL);
+    zs::Prefs& prefs = sp("almanac_state");
+    int64_t curCoin = prefs.getLong("ziru_coins", 1000000000LL);
+    int64_t curGp = prefs.getLong("ziru_gp", 1000000000LL);
+    jo->put("gp", (long long)curGp);
     ObjP ci = jo->optJSONObject("coin_info");
     if (!ci) { ci = newObj(); jo->put("coin_info", ci); }
-    ci->put("coin", 999999LL);
+    ci->put("coin", (long long)curCoin);
+    ArrP dt = newArr();
+    dt->put(newObj()->put("before_paid_coin", (long long)curCoin)->put("before_free_coin", 0LL)->put("after_paid_coin", (long long)curCoin)->put("after_free_coin", 0LL));
+    ci->put("details", dt);
     ObjP user = jo->optJSONObject("user");
-    if (user) user->put("gp", 999999999LL);
+    if (user) user->put("gp", (long long)curGp);
   }
   if (jo && (name == "responses/CmdGetMyclubAgentlist.json" || name == "responses/get_myclub_mainmenu_info.json")) applyZiruRemainingCounts(jo);
   if (jo && name == "responses/get_myclub_mainmenu_info.json") {
-    jo->put("gp", 999999999LL);
+    zs::Prefs& prefs = sp("almanac_state");
+    int64_t curCoin = prefs.getLong("ziru_coins", 1000000000LL);
+    int64_t curGp = prefs.getLong("ziru_gp", 1000000000LL);
+    jo->put("gp", (long long)curGp);
     ObjP ci = jo->optJSONObject("coin_info");
     if (!ci) { ci = newObj(); jo->put("coin_info", ci); }
-    ci->put("coin", 999999LL);
+    ci->put("coin", (long long)curCoin);
+    ArrP dt = newArr();
+    dt->put(newObj()->put("before_paid_coin", (long long)curCoin)->put("before_free_coin", 0LL)->put("after_paid_coin", (long long)curCoin)->put("after_free_coin", 0LL));
+    ci->put("details", dt);
     // Main-menu banners of type AGENT are the entry points to Ziru's packs (EPIC 1368, BIG TIME 1348, SHOW TIME 1374).
     // The client's EAnnouncementType has only AGENT(0) EVENT CAMPAIGN PACK COMPETITION COMEBACK_ACHIEVEMENT
     // (CmdGetMainmenuInfo literals); there is no NONE, so "NONE" falls back to AGENT 0 and tapping the banner opens an
@@ -572,10 +595,13 @@ Response serveInner(Request& r) {
     eiWrap->put("item_list", items);
     z27InjectTrainingItems(eiWrap);
     jo->put("item_list", items);
-    jo->put("gp", 999999999);
+    zs::Prefs& prefs = sp("almanac_state");
+    int64_t curCoin = prefs.getLong("ziru_coins", 1000000000LL);
+    int64_t curGp = prefs.getLong("ziru_gp", 1000000000LL);
+    jo->put("gp", (long long)curGp);
     ArrP dt = newArr();
-    dt->put(newObj()->put("before_paid_coin", 999999)->put("before_free_coin", 0)->put("after_paid_coin", 999999)->put("after_free_coin", 0));
-    jo->put("coin_info", newObj()->put("coin", 999999)->put("details", dt));
+    dt->put(newObj()->put("before_paid_coin", (long long)curCoin)->put("before_free_coin", 0LL)->put("after_paid_coin", (long long)curCoin)->put("after_free_coin", 0LL));
+    jo->put("coin_info", newObj()->put("coin", (long long)curCoin)->put("details", dt));
 
     return serveObjectAsEncryptedMsgPack(jo);
   }

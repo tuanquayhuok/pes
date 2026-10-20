@@ -223,7 +223,7 @@ void z27ApplyProgressionPoints(const ArrP& params, const ObjP& prog, const ArrP&
 
   for (int idx = 14; idx <= 40; idx++) {
     int baseVal = src->optInt(idx, 0);
-    int newVal = std::min(105, baseVal + deltas[idx]);
+    int newVal = std::min(130, baseVal + deltas[idx]);
     params->put(idx, newVal);
   }
 }

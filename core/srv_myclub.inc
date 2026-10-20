@@ -1,17 +1,26 @@
 // ---- MyClub: recruit / training / skills (OfflineServer.java ~105-800) ----
 
-int32_t z28RandomBooster(bool isGk = false) {
-  ArrP a = nn(loadZiruJsonAssetObject("responses/ZIRU_RANDOM_BOOSTERS.json"))->getJSONArray("ability_ids");
-  static const std::set<int> gkBoosters = {22, 33, 44, 73, 79, 85, 271, 451, 495, 502};
+int32_t z28RandomBooster(int pos = -1) {
+  // Max forward / striker boosters (+4 and top +3 for SS, CF, LWF, RWF, AMF)
+  static const std::vector<int32_t> fwdBoosters = {16, 48, 69, 77, 47, 24, 25, 17, 186, 187, 193};
+  // Max midfield boosters (+4 and top +3 for DMF, CMF, LMF, RMF)
+  static const std::vector<int32_t> midBoosters = {45, 47, 21, 18, 19, 22, 184, 187, 188, 189};
+  // Max defender boosters (+3/+4 for CB, LB, RB)
+  static const std::vector<int32_t> defBoosters = {20, 23, 12, 11, 25, 171, 185, 195, 198, 202};
+  // Max goalkeeper boosters (+3/+4 for GK)
+  static const std::vector<int32_t> gkBoosters = {15, 23, 33, 73, 79, 85, 136, 271};
+
   zc::JavaRandom r;
-  int attempts = 0;
-  while (attempts++ < 100) {
-    int32_t b = a->getInt(r.nextInt(a->length()));
-    bool isGkBooster = (gkBoosters.find(b) != gkBoosters.end());
-    if (isGk && isGkBooster) return b;
-    if (!isGk && !isGkBooster) return b;
+  if (pos == 0) {
+    return gkBoosters[r.nextInt((int)gkBoosters.size())];
+  } else if (pos >= 1 && pos <= 3) {
+    return defBoosters[r.nextInt((int)defBoosters.size())];
+  } else if (pos >= 4 && pos <= 7) {
+    return midBoosters[r.nextInt((int)midBoosters.size())];
+  } else {
+    // pos 8 (AMF), 9 (LWF), 10 (RWF), 11 (SS), 12 (CF) or fallback
+    return fwdBoosters[r.nextInt((int)fwdBoosters.size())];
   }
-  return isGk ? 22 : 12; // fallback GK Saving vs Outfield Agility
 }
 
 void applyZiruBoosterTrainingResponse(const ObjP& r13) {
@@ -32,11 +41,11 @@ void applyZiruBoosterTrainingResponse(const ObjP& r13) {
     }
     r8 = ziruSyncActiveBooster(r8);
     ArrP r9 = nn(r8)->optJSONArray("parameters");
-    bool isGk = (r9 && r9->length() > 0 && r9->optInt(0, -1) == 0);
+    int pos = (r9 && r9->length() > 0) ? r9->optInt(0, -1) : -1;
 
     int32_t r2;
     if (r0 == "ABILITY_TRAINING_RANDOM") {
-      r2 = z28RandomBooster(isGk);
+      r2 = z28RandomBooster(pos);
     } else if (r0 == "ABILITY_TRAINING_SELECT") {
       r2 = ziruAbilityId;
       if (r2 <= 0) { logRequest("ZIRU_BOOSTER_V23", "[ZIRU_BOOSTER_V23_FAIL] missing target/ability"); return; }
@@ -623,7 +632,7 @@ void applyZiruSkillTrainingResponse(const ObjP& jo) {
         }
       }
     }
-    std::string pool = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71";
+    std::string pool = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73";
     if (*ziruItemType == "SKILL_TRAINING_CATEGORY") {
       std::string c = resolveZiruSkillCategory();
       if (c == "UNKNOWN") c = "OTHER";
@@ -631,7 +640,7 @@ void applyZiruSkillTrainingResponse(const ObjP& jo) {
       else if (contains(c, "PASS")) pool = "31,32,33,34,35,36,37,38,39,40,41,42,43,46";
       else if (contains(c, "DRIB")) pool = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14";
       else if (contains(c, "DEF")) pool = "55,56,57,58,59,60,61,62,63,64,65,66";
-      else pool = "44,45,47,48,49,50,51,52,53,54,67,68,69,70,71";
+      else pool = "44,45,47,48,49,50,51,52,53,54,67,68,69,70,71,72,73";
     }
     std::vector<std::string> sp_ = split(pool, ',');
     std::vector<int> candidates;
@@ -645,8 +654,8 @@ void applyZiruSkillTrainingResponse(const ObjP& jo) {
     if (*ziruItemType == "SKILL_TRAINING_SELECT") {
       int chosen = ziruAbilityId;
       if (chosen == 0 && ziruSkillItemEffect > 0) chosen = ziruSkillItemEffect;
+      if (!isZiruSkillId(chosen)) chosen = iosSkillId(chosen, false);
 
-      if (!isZiruSkillId(chosen)) chosen = ziruAbilityId;
       if (isZiruSkillId(chosen)) {
         v = chosen;
       } else if (!candidates.empty()) {

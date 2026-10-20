@@ -68,7 +68,7 @@ inline bool adaptIosPlayerData(zj::Value& value, bool outgoing) {
     }
     for (const auto& key : value.o->keys()) {
       auto item = value.o->get(key);
-      if ((key == "additional_skill_id" || key == "skillcard_id_list") && item.t == zj::Value::ARR) {
+      if ((key == "additional_skill_id" || key == "skillcard_id_list" || key == "select_skill_list") && item.t == zj::Value::ARR) {
         auto skills = zj::Array::make();
         for (int i = 0; i < item.a->length(); ++i) skills->put(iosSkillId(item.a->getInt(i), outgoing));
         value.o->put(key, skills);

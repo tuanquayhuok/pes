@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trình Chỉnh Sửa Thông Số Cầu Thủ (Hỗ Trợ OVR 120 - 130) - PES 2027 Mod</title>
+  <link rel="stylesheet" href="modern.css">
+  <style>
+    :root {
+      --bg-dark: #070a12;
+      --panel-bg: #101624;
+      --card-bg: #161f33;
+      --accent-lime: #c5fa38;
+      --accent-cyan: #00e5ff;
+      --accent-gold: #ffd700;
+      --accent-purple: #c77dff;
+      --text-main: #f0f4fc;
+      --text-muted: #8c9ba5;
+      --stat-god: #ff0077;
+      --stat-high: #00ff88;
+      --stat-mid: #ffd700;
+      --stat-low: #ff5555;
+      --border-color: #243048;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); padding: 20px; line-height: 1.5; }
+    .container { max-width: 1240px; margin: 0 auto; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 25px; flex-wrap: wrap; gap: 12px; }
+    h1 { font-size: 1.6rem; color: var(--accent-lime); display: flex; align-items: center; gap: 10px; }
+    .badge { background: rgba(197, 250, 56, 0.15); color: var(--accent-lime); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--accent-lime); }
+    .badge-gold { background: rgba(255, 215, 0, 0.15); color: var(--accent-gold); border-color: var(--accent-gold); }
+    
+    .editor-layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+    @media (max-width: 900px) { .editor-layout { grid-template-columns: 1fr; } }
+    
+    /* Player Card Preview */
+    .card-preview { background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 20px; position: sticky; top: 20px; height: fit-content; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    
+    .player-card {
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #1b263b 0%, #0d1b2a 100%);
+      border: 2px solid var(--accent-cyan);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+    }
+
+    /* Epic 120-130 Glow Effect */
+    .player-card.tier-epic130 {
+      background: radial-gradient(circle at 50% 20%, #4a0e4e 0%, #15002a 60%, #080014 100%);
+      border: 2px solid var(--accent-gold);
+      box-shadow: 0 0 35px rgba(255, 215, 0, 0.5), inset 0 0 25px rgba(199, 125, 255, 0.3);
+      animation: cardPulse 3s infinite alternate;
+    }
+    @keyframes cardPulse {
+      0% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(199, 125, 255, 0.2); }
+      100% { box-shadow: 0 0 45px rgba(255, 0, 119, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.4); }
+    }
+
+    .card-tier-label { font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent-cyan); margin-bottom: 4px; }
+    .tier-epic130 .card-tier-label { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.8); }
+
+    .card-ovr { font-size: 4rem; font-weight: 900; color: var(--accent-lime); line-height: 1; text-shadow: 0 0 20px rgba(197, 250, 56, 0.5); }
+    .tier-epic130 .card-ovr { color: var(--accent-gold); text-shadow: 0 0 25px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 0, 119, 0.6); }
+
+    .card-pos { display: inline-block; background: var(--accent-cyan); color: #070b14; font-weight: 900; padding: 3px 12px; border-radius: 6px; font-size: 0.95rem; margin-top: 6px; }
+    .tier-epic130 .card-pos { background: linear-gradient(90deg, #ffd700, #ff0077); color: #fff; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+
+    .card-name { font-size: 1.6rem; font-weight: 800; margin: 12px 0 4px; color: #fff; letter-spacing: 0.5px; }
+    .card-meta { font-size: 0.85rem; color: var(--text-muted); }
+    
+    .preset-selector { margin-bottom: 16px; }
+    .preset-selector label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+    .select-box { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .select-box:focus { border-color: var(--accent-cyan); }
+    
+    /* Stat Groups */
+    .edit-panel { background: var(--panel-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 24px; }
+    .section-title { font-size: 1.1rem; color: var(--accent-cyan); margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; }
+    .section-title:first-of-type { margin-top: 0; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .stat-row { background: var(--card-bg); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px; }
+    .stat-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+    .stat-name { font-weight: 600; color: #d0d7de; }
+    .stat-value { font-weight: 800; font-size: 1.15rem; padding: 2px 8px; border-radius: 4px; min-width: 44px; text-align: center; }
+    .stat-slider-wrap { display: flex; align-items: center; gap: 10px; }
+    .stat-slider { flex: 1; accent-color: var(--accent-lime); height: 6px; border-radius: 3px; cursor: pointer; }
+    
+    .color-god { background: rgba(255, 0, 119, 0.25); color: #ff3399; border: 1px solid #ff0077; text-shadow: 0 0 8px rgba(255, 0, 119, 0.5); }
+    .color-high { background: rgba(0, 255, 136, 0.2); color: var(--stat-high); border: 1px solid var(--stat-high); }
+    .color-mid { background: rgba(255, 215, 0, 0.2); color: var(--stat-mid); border: 1px solid var(--stat-mid); }
+    .color-low { background: rgba(255, 85, 85, 0.2); color: var(--stat-low); border: 1px solid var(--stat-low); }
+
+    /* Skills Grid */
+    .skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .skill-toggle { background: var(--card-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; }
+    .skill-toggle:hover { border-color: var(--accent-cyan); }
+    .skill-toggle input { accent-color: var(--accent-cyan); width: 16px; height: 16px; }
+    .skill-toggle.featured { border-color: rgba(255, 215, 0, 0.5); background: rgba(255, 215, 0, 0.08); }
+
+    /* Code Export Box */
+    .export-box { margin-top: 25px; background: #070a10; border-radius: 10px; border: 1px solid var(--border-color); padding: 16px; }
+    .export-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+    .export-header h3 { font-size: 0.95rem; color: var(--accent-lime); }
+    pre { background: #04060a; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; color: #a5d6ff; overflow-x: auto; max-height: 200px; }
+    .btn { background: var(--accent-lime); color: #070b14; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-epic { background: linear-gradient(90deg, #ffd700, #ff0077); color: #fff; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+    .btn-secondary { background: #243048; color: #fff; }
+    
+    .quick-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+    .tier-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    
+    .instructions-card { margin-top: 20px; background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 10px; padding: 16px; font-size: 0.85rem; }
+    .instructions-card h4 { color: var(--accent-gold); margin-bottom: 6px; }
+    .instructions-card ol { padding-left: 20px; margin-top: 8px; }
+    .instructions-card li { margin-bottom: 6px; }
+    code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>👑 Tùy Chỉnh Thẻ OVR 120 - 130 <span class="badge badge-gold">Epic Booster Super Mod</span></h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Tự do thiết lập OVR tối đa từ 12x lên đến 130 cho các mùa thẻ Epic, Big Time, Show Time khi mở box</p>
+      </div>
+      <div>
+        <a href="index.html" class="btn btn-secondary">‹ Về Trang Quản Lý Gói Thẻ</a>
+      </div>
+    </header>
+
+    <div class="editor-layout">
+      <!-- Cột Trái: Live Card & Preset Selector -->
+      <aside class="card-preview">
+        <div class="preset-selector">
+          <label>Mùa Thẻ & Cầu Thủ Mẫu:</label>
+          <select id="player-preset" class="select-box">
+            <option value="messi-epic130" selected>👑 Lionel Messi (Mùa EPIC BOOSTER - OVR 130 MAX)</option>
+            <option value="ronaldo-epic130">👑 Cristiano Ronaldo (Mùa SHOW TIME GOD - OVR 130 MAX)</option>
+            <option value="messi-bigtime">⭐ Lionel Messi (Mùa BIG TIME - OVR 118)</option>
+            <option value="ronaldo-highlight">✨ Cristiano Ronaldo (Mùa HIGHLIGHT - OVR 105)</option>
+            <option value="villa-standard">⚪ David Villa (Mùa THƯỜNG - OVR 94)</option>
+          </select>
+        </div>
+
+        <!-- THẺ CẦU THỦ HIỂN THỊ TRỰC TIẾP -->
+        <div class="player-card tier-epic130" id="player-card-ui">
+          <div class="card-tier-label" id="card-tier">EPIC BOOSTER 130</div>
+          <div class="card-ovr" id="card-ovr">130</div>
+          <div class="card-pos" id="card-pos">RWF</div>
+          <div class="card-name" id="card-name">Lionel Messi</div>
+          <div class="card-meta" id="card-meta">19 Tuổi · 170cm · 72kg · Chân Trái</div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-epic" id="btn-set-130">🔥 Kích Hoạt Chỉ Số God 130 OVR</button>
+          <div class="tier-buttons">
+            <button class="btn btn-secondary" id="btn-set-115">Mùa 115 OVR</button>
+            <button class="btn btn-secondary" id="btn-set-100">Mùa 100 OVR</button>
+          </div>
+        </div>
+
+        <div class="instructions-card">
+          <h4>Cơ chế OVR 130 MAX theo chuẩn yêu cầu:</h4>
+          <ol>
+            <li><strong>Khi mới mở từ Box (Level 1):</strong> Cầu thủ Epic mang ngay chỉ số 118 - 126 ➔ <strong>OVR 120 - 122</strong>.</li>
+            <li><strong>Đã tính huấn luyện Max Level:</strong> Sau khi cày level và chia điểm (Career Plan / Progression Points +8 đến +10), các chỉ số chính chạm đỉnh <strong>130</strong> ➔ <strong>OVR 130 MAX</strong>.</li>
+            <li><strong>Chưa tính Booster:</strong> Khi vào trận đấu, HLV Link và Booster card (bit 142/143) sẽ kích hoạt buff thêm thuộc tính khi thi đấu.</li>
+            <li><strong>Server In-process:</strong> Đã nâng mức chặn trong <code style="color:var(--accent-lime)">core/srv_part5.inc</code> thành <code>std::min(130, baseVal + deltas)</code>.</li>
+          </ol>
+        </div>
+      </aside>
+
+      <!-- Cột Phải: Bộ Chỉnh Sửa Chỉ Số Chi Tiết Lên Đến 130 -->
+      <main class="edit-panel">
+        <h2 class="section-title">Thông Tin Cơ Bản & Phân Hạng Thẻ</h2>
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-row">
+            <div class="stat-header"><span class="stat-name">Vị Trí Sở Trường</span></div>
+            <select id="input-pos" class="select-box" style="padding:6px 10px;">
+              <option value="0">GK - Thủ môn</option>
+              <option value="1">CB - Trung vệ</option>
+              <option value="2">LB - Hậu vệ trái</option>
+              <option value="3">RB - Hậu vệ phải</option>
+              <option value="4">DMF - Tiền vệ phòng ngự</option>
+              <option value="5">CMF - Tiền vệ trung tâm</option>
+              <option value="6">LMF - Tiền vệ cánh trái</option>
+              <option value="7">RMF - Tiền vệ cánh phải</option>
+              <option value="8">AMF - Tiền vệ tấn công</option>
+              <option value="9">LWF - Tiền đạo cánh trái</option>
+              <option value="10" selected>RWF - Tiền đạo cánh phải</option>
+              <option value="11">SS - Tiền đạo lùi</option>
+              <option value="12">CF - Tiền đạo cắm</option>
+            </select>
+          </div>
+          <div class="stat-row">
+            <div class="stat-header"><span class="stat-name">Mùa Thẻ (Phân Cấp OVR)</span></div>
+            <select id="input-tier" class="select-box" style="padding:6px 10px;">
+              <option value="epic130" selected>👑 Epic Booster (Max 130 OVR)</option>
+              <option value="bigtime">⭐ Big Time (Max 118-120 OVR)</option>
+              <option value="highlight">✨ Highlight / Show Time (Max 105-110 OVR)</option>
+              <option value="standard">⚪ Standard Base (Max 95-99 OVR)</option>
+            </select>
+          </div>
+          <div class="stat-row">
+            <div class="stat-header"><span class="stat-name">Chân Thuận</span></div>
+            <select id="input-foot" class="select-box" style="padding:6px 10px;">
+              <option value="0">Chân Phải</option>
+              <option value="1" selected>Chân Trái</option>
+            </select>
+          </div>
+        </div>
+
+        <h2 class="section-title">Chỉ Số Tấn Công & Kiểm Soát Bóng (Kéo Lên Đến 130)</h2>
+        <div class="stats-grid" id="grid-attacking"></div>
+
+        <h2 class="section-title">Tốc Độ & Thể Lực (Kéo Lên Đến 130)</h2>
+        <div class="stats-grid" id="grid-physical"></div>
+
+        <h2 class="section-title">Phòng Ngự & Phản Xạ Thủ Môn (Kéo Lên Đến 130)</h2>
+        <div class="stats-grid" id="grid-defending"></div>
+
+        <h2 class="section-title">Kỹ Năng Độc Quyền (Booster & Showtime Skills)</h2>
+        <div class="skills-grid" id="grid-skills"></div>
+
+        <!-- Hộp Xuất Mã JSON Parameters -->
+        <div class="export-box">
+          <div class="export-header">
+            <h3>Dữ Liệu Parameters Game (149 Giá Trị Hỗ Trợ 130 OVR):</h3>
+            <button class="btn btn-epic" id="btn-copy">📋 Sao Chép JSON Parameters</button>
+          </div>
+          <pre id="output-json"></pre>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const POS_NAMES = ["GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF"];
+
+    const STAT_DEFS = {
+      attacking: [
+        { key: "oa", name: "Nhận thức tấn công", idx: 14, default: 125 },
+        { key: "bc", name: "Kiểm soát bóng", idx: 18, default: 130 },
+        { key: "dr", name: "Rê bóng (Dribbling)", idx: 17, default: 130 },
+        { key: "tp", name: "Giữ bóng chặt", idx: 19, default: 128 },
+        { key: "lp", name: "Chuyền sệt (Low Pass)", idx: 21, default: 122 },
+        { key: "hp", name: "Chuyền bổng (Lofted)", idx: 22, default: 120 },
+        { key: "fn", name: "Dứt điểm (Finishing)", idx: 20, default: 129 },
+        { key: "sp", name: "Đá phạt (Set Piece)", idx: 27, default: 125 },
+        { key: "cr", name: "Uốn bóng (Curl)", idx: 28, default: 126 }
+      ],
+      physical: [
+        { key: "sp", name: "Tốc độ (Speed)", idx: 34, default: 126 },
+        { key: "ac", name: "Tăng tốc (Acceleration)", idx: 38, default: 130 },
+        { key: "kp", name: "Lực sút (Kicking Power)", idx: 37, default: 124 },
+        { key: "jp", name: "Bật nhảy (Jumping)", idx: 39, default: 95 },
+        { key: "pc", name: "Va chạm thể chất", idx: 35, default: 98 },
+        { key: "bl", name: "Thăng bằng (Balance)", idx: 36, default: 130 },
+        { key: "st", name: "Thể lực (Stamina)", idx: 40, default: 120 }
+      ],
+      defending: [
+        { key: "da", name: "Nhận thức phòng ngự", idx: 15, default: 65 },
+        { key: "bw", name: "Tranh bóng (Ball Winning)", idx: 24, default: 70 },
+        { key: "ag", name: "Quyết liệt (Aggression)", idx: 25, default: 75 },
+        { key: "de", name: "Tham gia thủ", idx: 26, default: 70 },
+        { key: "gk1", name: "GK Nhận thức", idx: 16, default: 40 },
+        { key: "gk2", name: "GK Bắt bóng", idx: 29, default: 40 },
+        { key: "gk3", name: "GK Phản xạ", idx: 31, default: 40 }
+      ]
+    };
+
+    const SPECIAL_SKILLS = [
+      { name: "⚡ Blitz Curler (Sút xoáy thần sầu)", bit: 120, feat: true },
+      { name: "🚀 Momentum Dribbling (Rê bóng thần tốc)", bit: 116, feat: true },
+      { name: "🎯 Phenomenal Finishing (Dứt điểm siêu phàm)", bit: 114, feat: true },
+      { name: "🛡️ Fortress (Pháo đài bất khả xâm phạm)", bit: 115, feat: true },
+      { name: "🪄 Game-changing Pass (Chọc khe đổi vận)", bit: 117, feat: true },
+      { name: "👁️ Visionary Pass (Kiến tạo tầm nhìn)", bit: 118, feat: true },
+      { name: "📐 Edged Crossing (Tạt bóng hiểm hóc)", bit: 119, feat: true },
+      { name: "💥 Bullet Header (Đánh đầu đại bác)", bit: 121, feat: true },
+      { name: "✨ Phenomenal Pass (Chuyền bóng ảo giác)", bit: 122, feat: true },
+      { name: "Double Touch (Xoay bóng)", bit: 70 },
+      { name: "One-touch Pass (Đập nhả 1 chạm)", bit: 85 },
+      { name: "Through Passing (Chọc khe tinh tế)", bit: 86 },
+      { name: "Long Range Shooting (Sút xa)", bit: 88 },
+      { name: "Acrobatic Finishing (Ngả bàn đèn)", bit: 92 },
+      { name: "Interception (Cắt bóng)", bit: 106 },
+      { name: "Blocker (Chặn bóng)", bit: 111 }
+    ];
+
+    let params = new Array(149).fill(0);
+    params[0] = 10;
+    params[43] = 1;
+    params[46] = 19; params[47] = 170; params[48] = 72;
+
+    function applyPreset(type) {
+      if (type === "messi-epic130") {
+        document.getElementById("card-name").textContent = "Lionel Messi";
+        document.getElementById("input-pos").value = "10";
+        document.getElementById("input-tier").value = "epic130";
+        document.getElementById("input-foot").value = "1";
+        params[46] = 19; params[47] = 170; params[48] = 72;
+        setAllCategoryStats(125, 130);
+      } else if (type === "ronaldo-epic130") {
+        document.getElementById("card-name").textContent = "Cristiano Ronaldo";
+        document.getElementById("input-pos").value = "12";
+        document.getElementById("input-tier").value = "epic130";
+        document.getElementById("input-foot").value = "0";
+        params[46] = 27; params[47] = 187; params[48] = 83;
+        setAllCategoryStats(126, 130);
+      } else if (type === "messi-bigtime") {
+        document.getElementById("card-name").textContent = "Lionel Messi (2015)";
+        document.getElementById("input-pos").value = "10";
+        document.getElementById("input-tier").value = "bigtime";
+        document.getElementById("input-foot").value = "1";
+        setAllCategoryStats(110, 118);
+      } else if (type === "ronaldo-highlight") {
+        document.getElementById("card-name").textContent = "Cristiano Ronaldo";
+        document.getElementById("input-pos").value = "12";
+        document.getElementById("input-tier").value = "highlight";
+        document.getElementById("input-foot").value = "0";
+        setAllCategoryStats(98, 105);
+      } else if (type === "villa-standard") {
+        document.getElementById("card-name").textContent = "David Villa";
+        document.getElementById("input-pos").value = "12";
+        document.getElementById("input-tier").value = "standard";
+        document.getElementById("input-foot").value = "0";
+        setAllCategoryStats(85, 94);
+      }
+      renderAllSliders();
+      updateCard();
+    }
+
+    function setAllCategoryStats(base, high) {
+      STAT_DEFS.attacking.forEach(s => params[s.idx] = Math.round(base + (high - base) * Math.random()));
+      STAT_DEFS.physical.forEach(s => params[s.idx] = Math.round(base + (high - base) * Math.random()));
+      STAT_DEFS.defending.forEach(s => params[s.idx] = (s.idx <= 26 ? Math.round(base * 0.6) : 40));
+    }
+
+    function renderStatSliders(containerId, statList) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = "";
+      statList.forEach(item => {
+        if (!params[item.idx]) params[item.idx] = item.default;
+        const val = params[item.idx];
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        row.innerHTML = `
+          <div class="stat-header">
+            <span class="stat-name">${item.name}</span>
+            <span class="stat-value" id="badge-${item.idx}">${val}</span>
+          </div>
+          <div class="stat-slider-wrap">
+            <input type="range" class="stat-slider" id="slider-${item.idx}" min="40" max="130" value="${val}">
+          </div>
+        `;
+        el.appendChild(row);
+
+        const slider = row.querySelector(`#slider-${item.idx}`);
+        slider.addEventListener("input", (e) => {
+          const v = Number(e.target.value);
+          params[item.idx] = v;
+          updateBadge(item.idx, v);
+          updateCard();
+        });
+      });
+    }
+
+    function updateBadge(idx, val) {
+      const b = document.getElementById(`badge-${idx}`);
+      if (!b) return;
+      b.textContent = val;
+      b.className = "stat-value " + (val >= 115 ? "color-god" : val >= 90 ? "color-high" : val >= 80 ? "color-mid" : "color-low");
+    }
+
+    function renderAllSliders() {
+      renderStatSliders("grid-attacking", STAT_DEFS.attacking);
+      renderStatSliders("grid-physical", STAT_DEFS.physical);
+      renderStatSliders("grid-defending", STAT_DEFS.defending);
+
+      [...STAT_DEFS.attacking, ...STAT_DEFS.physical, ...STAT_DEFS.defending].forEach(item => {
+        updateBadge(item.idx, params[item.idx]);
+      });
+    }
+
+    function renderSkills() {
+      const el = document.getElementById("grid-skills");
+      el.innerHTML = "";
+      SPECIAL_SKILLS.forEach(sk => {
+        const label = document.createElement("label");
+        label.className = "skill-toggle" + (sk.feat ? " featured" : "");
+        label.innerHTML = `
+          <input type="checkbox" id="skill-${sk.bit}" ${params[sk.bit] ? "checked" : ""}>
+          <span>${sk.name}</span>
+        `;
+        el.appendChild(label);
+
+        label.querySelector("input").addEventListener("change", (e) => {
+          params[sk.bit] = e.target.checked ? 1 : 0;
+          updateCard();
+        });
+      });
+    }
+
+    function computeOVR() {
+      const oa = params[14] || 80;
+      const bc = params[18] || 80;
+      const dr = params[17] || 80;
+      const fn = params[20] || 80;
+      const sp = params[34] || 80;
+      const ac = params[38] || 80;
+      const kp = params[37] || 80;
+      
+      const weighted = (oa*1.5 + bc*1.2 + dr*1.4 + fn*1.5 + sp*1.0 + ac*1.2 + kp*0.8) / 8.6;
+      let ovr = Math.round(weighted);
+      return Math.min(130, Math.max(60, ovr));
+    }
+
+    function updateCard() {
+      const posIdx = Number(document.getElementById("input-pos").value);
+      params[0] = posIdx;
+      document.getElementById("card-pos").textContent = POS_NAMES[posIdx] || "RWF";
+      
+      const foot = Number(document.getElementById("input-foot").value);
+      params[43] = foot;
+
+      const tier = document.getElementById("input-tier").value;
+      const cardEl = document.getElementById("player-card-ui");
+      const tierLabel = document.getElementById("card-tier");
+      
+      if (tier === "epic130") {
+        cardEl.className = "player-card tier-epic130";
+        tierLabel.textContent = "👑 EPIC BOOSTER (MAX 130)";
+      } else if (tier === "bigtime") {
+        cardEl.className = "player-card";
+        cardEl.style.border = "2px solid #ffd700";
+        tierLabel.textContent = "⭐ BIG TIME (MAX 120)";
+      } else {
+        cardEl.className = "player-card";
+        cardEl.style.border = "2px solid #00e5ff";
+        tierLabel.textContent = "STANDARD / HIGHLIGHT";
+      }
+
+      const ovr = computeOVR();
+      document.getElementById("card-ovr").textContent = ovr;
+      document.getElementById("card-meta").textContent = `${params[46]} Tuổi · ${params[47]}cm · ${params[48]}kg · Chân ${foot === 1 ? "Trái" : "Phải"}`;
+
+      document.getElementById("output-json").textContent = JSON.stringify(params);
+    }
+
+    // Event listeners
+    document.getElementById("player-preset").addEventListener("change", (e) => applyPreset(e.target.value));
+    document.getElementById("input-pos").addEventListener("change", updateCard);
+    document.getElementById("input-foot").addEventListener("change", updateCard);
+    document.getElementById("input-tier").addEventListener("change", updateCard);
+
+    document.getElementById("btn-set-130").addEventListener("click", () => {
+      document.getElementById("input-tier").value = "epic130";
+      [...STAT_DEFS.attacking, ...STAT_DEFS.physical].forEach(item => {
+        params[item.idx] = 130;
+        const slider = document.getElementById(`slider-${item.idx}`);
+        if (slider) slider.value = 130;
+        updateBadge(item.idx, 130);
+      });
+      SPECIAL_SKILLS.forEach(sk => {
+        params[sk.bit] = 1;
+        const chk = document.getElementById(`skill-${sk.bit}`);
+        if (chk) chk.checked = true;
+      });
+      updateCard();
+    });
+
+    document.getElementById("btn-set-115").addEventListener("click", () => {
+      document.getElementById("input-tier").value = "bigtime";
+      [...STAT_DEFS.attacking, ...STAT_DEFS.physical].forEach(item => {
+        params[item.idx] = 115;
+        const slider = document.getElementById(`slider-${item.idx}`);
+        if (slider) slider.value = 115;
+        updateBadge(item.idx, 115);
+      });
+      updateCard();
+    });
+
+    document.getElementById("btn-set-100").addEventListener("click", () => {
+      document.getElementById("input-tier").value = "highlight";
+      [...STAT_DEFS.attacking, ...STAT_DEFS.physical].forEach(item => {
+        params[item.idx] = 98;
+        const slider = document.getElementById(`slider-${item.idx}`);
+        if (slider) slider.value = 98;
+        updateBadge(item.idx, 98);
+      });
+      updateCard();
+    });
+
+    document.getElementById("btn-copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(JSON.stringify(params));
+      alert("Đã sao chép 149 giá trị parameters (Max 130) vào Clipboard!");
+    });
+
+    initPresets();
+    renderSkills();
+  </script>
+</body>
+</html>
